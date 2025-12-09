@@ -1,0 +1,67 @@
+----------------------------------------------------------------------------------
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date: 04/21/2023 09:55:08 AM
+-- Design Name: 
+-- Module Name: counter - Behavioral
+-- Project Name: 
+-- Target Devices: 
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
+----------------------------------------------------------------------------------
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity divider is
+port (ini_clk, rst: in std_logic;
+new_clk: out std_logic_vector(3 downto 0));
+end divider;
+
+architecture Dividing of divider is
+signal divide: std_logic_vector(3 downto 0):="0000";
+signal count: integer:=1;
+signal tmp: std_logic:='0';
+begin
+process (ini_clk, rst)
+begin
+    if (rst='1') then
+    count <= 1;
+    tmp<='0';
+    elsif (ini_clk'event and ini_clk ='1') then
+    count <= count+1;
+    if (count = 12500000) then
+    divide(0) <= NOT divide(0);
+    count <= 1;
+    end if;
+    end if;
+end process;
+process (divide(0))
+begin
+    if (divide(0)'event and divide(0) ='1') then
+    divide(1) <= NOT divide(1);
+    end if;
+end process;
+process(divide(1))
+begin
+    if (divide(1)'event and divide(1) ='1') then
+    divide(2) <= NOT divide(2);
+    end if;
+end process;
+process(divide(2))
+begin
+    if (divide(2)'event and divide(2) ='1') then
+    divide(3) <= NOT divide(3);
+    end if;
+end process;
+new_clk <= divide;
+end Dividing;
+

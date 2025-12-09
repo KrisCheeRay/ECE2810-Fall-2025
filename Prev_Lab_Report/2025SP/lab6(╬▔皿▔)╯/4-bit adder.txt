@@ -1,0 +1,55 @@
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+
+entity FullAdder is 
+port( A: in std_logic;
+	B: in std_logic;
+	Cin: in std_logic;
+	S: out std_logic;
+	C: out std_logic);
+end entity;
+
+architecture adding of FullAdder is
+begin
+S <= (A xor B) xor Cin;
+C <= (A and (B or Cin)) or (Cin and B);
+end adding;
+
+
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
+
+entity 4BitAdder is 
+port( BCD1: in std_logic_vector(3 downto 0);
+	BCD2: in std_logic_vector(3 downto 0);
+	BCD3: out std_logic_vector(3 downto 0);
+	carry: out std_logic);
+end entity;
+
+architecture Add of 4BitAdder is
+
+component FullAdder is
+port( A: in std_logic;
+	B: in std_logic;
+	Cin: in std_logic;
+	S: out std_logic;
+	C: out std_logic);
+end component;
+
+signal carry1: std_logic:='0';
+signal carry2: std_logic:='0';
+signal carry3: std_logic:='0';
+signal carry4: std_logic:='0';
+signal carry5: std_logic:='0';
+
+begin
+Adding0: FullAdder port map (BCD1(0), BCD2(0), carry1, BCD3(0), carry2);
+Adding1: FullAdder port map (BCD1(1), BCD2(1), carry2, BCD3(1), carry3);
+Adding2: FullAdder port map (BCD1(2), BCD2(2), carry3, BCD3(2), carry4);
+Adding3: FullAdder port map (BCD1(3), BCD2(3), carry4, BCD3(3), carry5);
+carry <= carry5;
+
+end Add;

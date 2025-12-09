@@ -1,0 +1,198 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+-- Uncomment the following library declaration if using
+-- arithmetic functions with Signed or Unsigned values
+--use IEEE.NUMERIC_STD.ALL;
+
+-- Uncomment the following library declaration if instantiating
+-- any Xilinx leaf cells in this code.
+--library UNISIM;
+--use UNISIM.VComponents.all;
+
+entity CountDownTimer is
+    Port ( S4 : in STD_LOGIC;
+           S0 : in STD_LOGIC;
+           Clk : in STD_LOGIC;
+           DN0 : out STD_LOGIC_VECTOR (1 downto 0);
+           DP : out STD_LOGIC_VECTOR (6 downto 0);
+           SLY : out STD_LOGIC_VECTOR (7 downto 0);
+           FLY : out STD_LOGIC_VECTOR (3 downto 0);
+           SWI : in STD_LOGIC_VECTOR (7 downto 0));
+end CountDownTimer;
+
+architecture Behavioral of CountDownTimer is
+signal flash: std_logic := '0';
+signal HZ8: std_logic := '0';
+signal HZ4: std_logic:= '0';
+signal HZ2: std_logic:= '0';
+signal HZ1: std_logic:= '0';
+signal Start: std_logic_vector (6 downto 0):= "0000000";
+signal SET0: std_logic_vector (6 downto 0):= "0000000";
+signal SET1: std_logic_vector (6 downto 0):= "0000000";
+signal SET3: std_logic_vector (6 downto 0):= "0000000";
+signal SET4: std_logic_vector (6 downto 0):= "0000000";
+signal DN: std_logic_vector (6 downto 0) := "0000000";
+signal DEC0: std_logic_vector (3 downto 0) := "0000";
+signal DEC1: std_logic_vector (3 downto 0) := "0000";
+
+begin
+
+process(Clk)
+variable cnt: integer:= 0;
+begin
+IF rising_edge(Clk) THEN
+   cnt := cnt + 1;
+   IF (cnt = 6250000) THEN
+       HZ8 <= NOT HZ8;
+      cnt := 0;
+   END IF;
+END IF; 
+end process;
+
+process(Clk)
+variable cnt: integer:= 0;
+begin
+IF rising_edge(Clk) THEN
+   cnt := cnt + 1;
+   IF (cnt = 10000) THEN
+       flash <= NOT flash;
+      cnt := 0;
+   END IF;
+END IF; 
+end process;
+
+process(HZ8)
+begin
+IF rising_edge(HZ8) THEN
+    HZ4 <= NOT HZ4;
+END IF;
+end process;
+
+process(HZ4)
+begin
+IF rising_edge(HZ4) THEN
+    HZ2 <= NOT HZ2;
+END IF;
+end process;
+
+process(HZ2)
+begin
+IF rising_edge(HZ2) THEN
+    HZ1 <= NOT HZ1;
+END IF;
+end process;
+
+FLY(3) <= HZ8;
+FLY(2) <= HZ4;
+FLY(1) <= HZ2;
+FLY(0) <= HZ1;
+SLY(0) <= SWI(0);
+SLY(1) <= SWI(1);
+SLY(2) <= SWI(2);
+SLY(3) <= SWI(3);
+SLY(4) <= SWI(4);
+SLY(5) <= SWI(5);
+SLY(6) <= SWI(6);
+SLY(7) <= SWI(7);
+DN0(0) <= not DN(0);
+DN0(1) <= DN(0);
+DP <= (SET1 and DN) or (SET0 and not DN);
+
+process(flash)
+begin
+if rising_edge(flash) then
+    DN <= not DN;
+end if;
+end process;
+
+
+process(HZ1, flash)
+begin
+if (S4 = '1') then
+    DEC0 <= SWI(3 downto 0);
+    DEC1 <= SWI(7 downto 4);
+end if;
+
+if rising_edge(flash) then
+SET0(0) <= DEC0(3) or (DEC0(2) and DEC0(0)) or (DEC0(1) and DEC0(0)) or (not DEC0(2) and  not DEC0(0));
+SET0(1) <= DEC0(3) or (not DEC0(1) and not DEC0(0)) or (DEC0(1) and DEC0(0)) or not DEC0(2);
+SET0(2) <= DEC0(3) or DEC0(2) or not DEC0(1) or DEC0(0);
+SET0(3) <= (DEC0(2) and not DEC0(1) and DEC0(0)) or (not DEC0(2) and DEC0(1)) or (DEC0(1) and not DEC0(0)) or (not DEC0(2) and not DEC0(0));
+SET0(4) <= (DEC0(1) and not DEC0(0)) or (not DEC0(2) and not DEC0(0));
+SET0(5) <= DEC0(3) or (not DEC0(1) and not DEC0(0)) or (DEC0(2) and not DEC0(1)) or (DEC0(2) and not DEC0(0));
+SET0(6) <= DEC0(3) or (DEC0(2) and not DEC0(1)) or (DEC0(1) and not DEC0(0)) or (not DEC0(2) and DEC0(1));
+SET1(0) <= DEC1(3) or (DEC1(2) and DEC1(0)) or (DEC1(1) and DEC1(0)) or (not DEC1(2) and  not DEC1(0));
+SET1(1) <= DEC1(3) or (not DEC1(1) and not DEC1(0)) or (DEC1(1) and DEC1(0)) or not DEC1(2);
+SET1(2) <= DEC1(3) or DEC1(2) or not DEC1(1) or DEC1(0);
+SET1(3) <= (DEC1(2) and not DEC1(1) and DEC1(0)) or (not DEC1(2) and DEC1(1)) or (DEC1(1) and not DEC1(0)) or (not DEC1(2) and not DEC1(0));
+SET1(4) <= (DEC1(1) and not DEC1(0)) or (not DEC1(2) and not DEC1(0));
+SET1(5) <= DEC1(3) or (not DEC1(1) and not DEC1(0)) or (DEC1(2) and not DEC1(1)) or (DEC1(2) and not DEC1(0));
+SET1(6) <= DEC1(3) or (DEC1(2) and not DEC1(1)) or (DEC1(1) and not DEC1(0)) or (not DEC1(2) and DEC1(1));
+end if;
+
+if rising_edge(HZ1) then
+if (Start(0) = '1') then
+if (DEC0 = "1001") then
+    DEC0<= "1000";
+elsif (DEC0 = "1000") then
+    DEC0 <= "0111";
+elsif (DEC0 = "0111") then
+    DEC0 <= "0110";
+elsif (DEC0 = "0110") then
+    DEC0<= "0101";
+elsif (DEC0 = "0101") then
+    DEC0 <= "0100";
+elsif (DEC0 = "0100") then
+    DEC0 <= "0011";
+elsif (DEC0 = "0011") then
+    DEC0<= "0010";
+elsif (DEC0 = "0010") then
+    DEC0 <= "0001";
+elsif (DEC0 = "0001") then
+    DEC0 <= "0000";
+elsif (DEC0 = "0000" and DEC1 = "0000") then
+    DEC0 <= "0000";
+else
+    DEC0 <= "1001";
+end if;
+end if;
+if(Start(0) = '1' and DEC0 = "0000") then
+if (DEC1 = "1001") then
+    DEC1<= "1000";
+elsif (DEC1 = "1000") then
+    DEC1 <= "0111";
+elsif (DEC1 = "0111") then
+    DEC1 <= "0110";
+elsif (DEC1 = "0110") then
+    DEC1<= "0101";
+elsif (DEC1 = "0101") then
+    DEC1 <= "0100";
+elsif (DEC1 = "0100") then
+    DEC1 <= "0011";
+elsif (DEC1 = "0011") then
+    DEC1<= "0010";
+elsif (DEC1 = "0010") then
+    DEC1 <= "0001";
+elsif (DEC1 = "0001") then
+    DEC1 <= "0000";
+elsif (DEC1 = "0000") then
+    DEC1 <= "0000";
+end if;
+end if;
+end if;
+
+end process;
+
+
+process(HZ4)
+begin
+if (S0 = '1') then
+    Start <= "1111111";
+else
+    Start <= "0000000";
+end if;
+end process;
+
+
+end Behavioral;

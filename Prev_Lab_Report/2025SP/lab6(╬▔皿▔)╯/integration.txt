@@ -1,0 +1,242 @@
+-- Company: 
+-- Engineer: 
+-- 
+-- Create Date: 04/21/2023 09:55:08 AM
+-- Design Name: 
+-- Module Name: counter - Behavioral
+-- Project Name: 
+-- Target Devices: 
+-- Tool Versions: 
+-- Description: 
+-- 
+-- Dependencies: 
+-- 
+-- Revision:
+-- Revision 0.01 - File Created
+-- Additional Comments:
+-- 
+----------------------------------------------------------------------------------
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+entity divider is
+port (ini_clk, rst: in std_logic;
+	l_b: in std_logic;  --load button
+	ManualInp: in std_logic_vector(7 downto 0);
+	LEDs: out std_logic_vector(7 downto 0);
+	SevenSeg: out std_logic_vector(6 downto 0);
+	new_clk: out std_logic_vector(3 downto 0);
+	t_u: out std_logic_vector(1 downto 0));  --ten or unit
+end divider;
+
+architecture Dividing of divider is
+
+signal divide1: std_logic:='0';
+signal divide2: std_logic:='0';
+signal divide4: std_logic:='0';
+signal divide8: std_logic:='0';
+signal count: integer:=1;  --used in 8Hz
+signal count1: integer:=1;  --used in special clock
+signal switch: std_logic_vector(7 downto 0):="00000000";
+signal tens: std_logic_vector(3 downto 0):="0000";
+signal ones: std_logic_vector(3 downto 0):="0000";
+signal tens_apply: std_logic_vector(3 downto 0):="0000";
+signal ones_apply: std_logic_vector(3 downto 0):="0000";
+signal spc_clk: std_logic:='0';
+signal seg_ten: std_logic_vector(6 downto 0):="0000000";
+signal seg_one: std_logic_vector(6 downto 0):="0000000";
+
+begin
+
+process (ini_clk, rst)
+begin
+if (rst='1') then
+	count <= 1;
+elsif (ini_clk'event and ini_clk ='1') then
+	count <= count+1;
+	if (count = 6250000) then
+    		divide8 <= NOT divide8;
+		count <= 1;
+	end if;
+end if;
+end process;
+
+process (divide8)
+begin
+if (divide8'event and divide8 ='1') then
+	divide4 <= NOT divide4;
+end if;
+end process;
+
+process(divide4)
+begin
+if (divide4'event and divide4 ='1') then
+	divide2 <= NOT divide2;
+end if;
+end process;
+
+process(divide2)
+begin
+if (divide2'event and divide2 ='1') then
+	divide1 <= NOT divide1;
+end if;
+end process;
+
+new_clk(3) <= divide8;
+new_clk(2) <= divide4;
+new_clk(1) <= divide2;
+new_clk(0) <= divide1;
+
+--clock division finish
+
+--assign the user input to the system
+
+process(switch)
+begin
+if (rst='1') then
+	switch <="00000000";
+elsif (ini_clk'event and ini_clk='1') then
+	--separate the pressed condition and not pressed condition
+	if (l_b='1') then
+		switch <= ManualInp;
+	else
+		switch <= switch
+	end if;
+end if;
+end process;
+
+--special conditions of the BCD
+
+process(switch)
+begin
+if (switch(7 downto 4) > "1001") then
+	tens <= "1001";
+else
+	tens <= switch(7 downto 4);
+end if;
+end process;
+
+process(switch)
+begin
+if (switch(3 downto 0) > "1001") then
+	ones <= "1001";
+else
+	ones <= switch(7 DOWNTO 4);
+end if;
+end process;
+
+--assign the signal to the LEDs
+
+LEDs <= (tens & ones);
+
+--generate a special clock for the ten and the unit
+
+process (ini_clk, rst)
+begin
+if (rst='1') then
+	count1 <= 1;
+elsif (ini_clk'event and ini_clk ='1') then
+	count1 <= count1+1;
+	if (count1 = 250000) then
+    		spc_clk <= NOT spc_clk;
+		count1 <= 1;
+	end if;
+end if;
+end process;
+
+t_u <= "10" when (spc_clk='1') else "01";
+
+--translate BCD to 7-segment
+
+process(tens_apply)
+begin
+case tens_apply is
+when "0000" => seg_ten <="0000000";  --do not let it appear 0 when the ten equals 0
+when "0001" => seg_ten <="0110000";
+when "0010" => seg_ten <="1101101";
+when "0011" => seg_ten <="1111001";
+when "0100" => seg_ten <="0110011";
+when "0101" => seg_ten <="1011011";
+when "0110" => seg_ten <="1011111";
+when "0111" => seg_ten <="1110000";
+when "1000" => seg_ten <="1111111";
+when "1001" => seg_ten <="1111011";
+end case;
+end process;
+
+process(ones_apply)
+begin
+case ones_apply is
+when "0000" => seg_one <="1111110";
+when "0001" => seg_ten <="0110000";
+when "0010" => seg_ten <="1101101";
+when "0011" => seg_ten <="1111001";
+when "0100" => seg_ten <="0110011";
+when "0101" => seg_ten <="1011011";
+when "0110" => seg_ten <="1011111";
+when "0111" => seg_ten <="1110000";
+when "1000" => seg_ten <="1111111";
+when "1001" => seg_ten <="1111011";
+end case;
+end process;
+
+--arrange the output case
+
+SevenSeg <= seg_ten when (spc_clk='1') else seg_one;
+
+--the count down logic
+
+process(divide1, rst)
+begin
+if (rst = '1') then
+	tens_apply <= "0000";
+elsif (divide1'event and divide1 = '1') then
+ 	if (l_b = '1') then
+		tens_apply <= tens;
+	elsif (tens_apply = "0000") then
+		tens_apply <= "0000";
+	elsif (ones_apply = "0000") then
+		tens_apply <= tens_apply - "0001";
+	else
+		tens_apply <= tens_apply;
+	end if;
+end if;
+end process;
+
+process (divide1, rst)
+begin
+if (rst = '1') then
+	ones_apply <= "0000";
+elsif (divide1'event and divide1 = '1') then
+	if (l_b = '1') then
+		ones_apply <= ones;
+	elsif (ones_apply = "0000") then
+		if (tens_apply = "0000") then
+			ones_apply <= "0000";
+		else
+			ones_apply <= "1001";
+		end if;
+	else
+		ones_apply <= ones_apply - "0001";
+	end if;
+end if;
+end process;
+   
+end Dividing;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
